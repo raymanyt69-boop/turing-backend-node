@@ -177,6 +177,7 @@ app.post("/api/register", async (req, res) => {
 // POST /api/ticket/send - send ticket(s) for a payment identified by paymentId or email
 app.post("/api/ticket/send", async (req, res) => {
   try {
+    console.log("/api/ticket/send invoked", { body: req.body });
     const { paymentId, email } = req.body || {};
     if (!paymentId && !email)
       return res.status(400).json({ error: "missing paymentId or email" });
@@ -196,6 +197,7 @@ app.post("/api/ticket/send", async (req, res) => {
     }
 
     if (!doc) return res.status(404).json({ error: "payment not found" });
+    console.log("Found payment doc", { id: doc.id, dataPreview: { email: (doc.data() && doc.data().email) || null, ticketSent: (doc.data() && doc.data().ticketSent) || false } });
 
     const data = doc.data();
     if (data.dismissed) return res.status(400).json({ error: "payment dismissed" });
@@ -241,24 +243,31 @@ app.post("/api/ticket/send", async (req, res) => {
     }
 
     try {
+      console.log("Calling Apps Script", { url: APPSCRIPT_URL, tokenPresent: !!APPSCRIPT_TOKEN });
+      console.log("Apps Script payload preview", { ticketCode: appsPayload.ticketCode, email: appsPayload.email, ticketCodesCount: Array.isArray(appsPayload.ticketCodes) ? appsPayload.ticketCodes.length : 0 });
       const resp = await fetch(APPSCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(appsPayload),
       });
       const text = await resp.text();
+      console.log("Apps Script response", { status: resp.status, ok: resp.ok, body: text });
 
       // Update payment doc with ticket details
-      await doc.ref.update({
-        ticketSent: resp.ok,
-        ticketSentAt: admin.firestore.FieldValue.serverTimestamp(),
-        ticketCode: ticketCodes[0],
-        ticketCodes,
-        qrUrl: qrUrls[0],
-        qrUrls,
-        ticketLinks,
-        ticketResponse: text,
-      });
+      try {
+        await doc.ref.update({
+          ticketSent: resp.ok,
+          ticketSentAt: admin.firestore.FieldValue.serverTimestamp(),
+          ticketCode: ticketCodes[0],
+          ticketCodes,
+          qrUrl: qrUrls[0],
+          qrUrls,
+          ticketLinks,
+          ticketResponse: text,
+        });
+      } catch (uErr) {
+        console.error("Failed to update payment doc with ticket info", uErr);
+      }
 
       return res.json({ ok: true, ticketSent: resp.ok, response: text });
     } catch (err) {
