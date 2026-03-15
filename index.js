@@ -189,7 +189,7 @@ app.post("/api/register", async (req, res) => {
 app.post("/api/ticket/send", async (req, res) => {
   try {
     console.log("/api/ticket/send invoked", { body: req.body });
-    const { paymentId, email } = req.body || {};
+    const { paymentId, email, force } = req.body || {};
     if (!paymentId && !email)
       return res.status(400).json({ error: "missing paymentId or email" });
 
@@ -212,7 +212,13 @@ app.post("/api/ticket/send", async (req, res) => {
 
     const data = doc.data();
     if (data.dismissed) return res.status(400).json({ error: "payment dismissed" });
-    if (data.ticketSent) return res.json({ ok: true, message: "ticket already sent" });
+    if (data.ticketSent && !force) {
+      console.log("Skipping send: ticket already sent and force flag not set", { id: doc.id });
+      return res.json({ ok: true, message: "ticket already sent" });
+    }
+    if (data.ticketSent && force) {
+      console.log("Force resend requested for payment", { id: doc.id });
+    }
 
     // Build ticket codes
     const baseTicket = data.merchantOrderId || data.order || data.sessionId || `ticket-${doc.id}`;
