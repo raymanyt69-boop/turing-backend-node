@@ -7,6 +7,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Log incoming API requests (method, path, ip, small body preview)
+app.use('/api', (req, res, next) => {
+  try {
+    const bodyPreview = req.method === 'POST' && req.body ? (typeof req.body === 'object' ? JSON.stringify(req.body, null, 0) : String(req.body)) : undefined;
+    console.log('API Request ->', { method: req.method, path: req.originalUrl, ip: req.ip, body: bodyPreview });
+  } catch (e) {
+    console.log('API Request -> (failed to stringify body)');
+  }
+  next();
+});
+
 // Use environment variables for APPSCRIPT_URL and APPSCRIPT_TOKEN
 const APPSCRIPT_URL = process.env.APPSCRIPT_URL;
 const APPSCRIPT_TOKEN = process.env.APPSCRIPT_TOKEN;
