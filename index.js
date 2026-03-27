@@ -196,6 +196,9 @@ app.post("/api/ticket/send", async (req, res) => {
     if (paymentId) {
       // Log the paymentId being searched for
       console.log("Looking for payment document with paymentId:", paymentId);
+
+      console.log("Received paymentId:", paymentId);  // Log paymentId from request
+
       
       // Query Firestore using the paymentId as the document ID
       const paymentDoc = await db.collection("payments").doc(paymentId).get();
