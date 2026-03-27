@@ -190,14 +190,22 @@ app.post("/api/ticket/send", async (req, res) => {
   try {
     console.log("/api/ticket/send invoked", { body: req.body });
     const { paymentId, email, force } = req.body || {};
-    if (!paymentId && !email)
-      return res.status(400).json({ error: "missing paymentId or email" });
+    if (!paymentId && !email) return res.status(400).json({ error: "missing paymentId or email" });
 
     let doc = null;
     if (paymentId) {
-      // Query Firestore using the paymentId as the document ID (assuming paymentId is the doc ID)
-      const d = await db.collection("payments").doc(paymentId).get();
-      if (d.exists) doc = d;
+      // Log the paymentId being searched for
+      console.log("Looking for payment document with paymentId:", paymentId);
+      
+      // Query Firestore using the paymentId as the document ID
+      const paymentDoc = await db.collection("payments").doc(paymentId).get();
+      
+      if (paymentDoc.exists) {
+        doc = paymentDoc;
+        console.log("Found payment doc:", paymentDoc.id);
+      } else {
+        console.error("Payment not found:", paymentId);
+      }
     } else if (email) {
       // Query by email if paymentId is not provided
       const snap = await db
@@ -206,11 +214,16 @@ app.post("/api/ticket/send", async (req, res) => {
         .orderBy("createdAt", "desc")
         .limit(1)
         .get();
-      if (!snap.empty) doc = snap.docs[0];
+
+      if (!snap.empty) {
+        doc = snap.docs[0];
+        console.log("Found payment doc by email:", doc.id);
+      } else {
+        console.error("Payment not found for email:", email);
+      }
     }
 
     if (!doc) return res.status(404).json({ error: "payment not found" });
-    console.log("Found payment doc", { id: doc.id, dataPreview: { email: (doc.data() && doc.data().email) || null, ticketSent: (doc.data() && doc.data().ticketSent) || false } });
 
     const data = doc.data();
     if (data.dismissed) return res.status(400).json({ error: "payment dismissed" });
