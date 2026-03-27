@@ -345,7 +345,13 @@ app.get("/api/ticket/check", async (req, res) => {
     const scannedAtRaw = scannedEntry || data.scannedAt || null;
     const scannedAt = scannedAtRaw && scannedAtRaw.toDate ? scannedAtRaw.toDate().toISOString() : scannedAtRaw;
 
-    return res.json({ ok: true, found: true, scanned, scannedAt, user: data.user || null, ticketCode: data.ticketCode || code });
+    const user = {
+      name: data.name || null,
+      email: data.email || null,
+      phone: data.phone || null,
+      age: data.age || null
+    };
+    return res.json({ ok: true, found: true, scanned, scannedAt, user, ticketCode: data.ticketCode || code });
   } catch (err) {
     console.error("/api/ticket/check error", err);
     return res.status(500).json({ error: String(err) });
@@ -389,7 +395,13 @@ app.post("/api/ticket/check", async (req, res) => {
     }
 
     await doc.ref.update(updateData);
-    return res.json({ ok: true, message: "checked in", user: data.user || null, ticketCode: data.ticketCode || code });
+    const user = {
+      name: data.name || null,
+      email: data.email || null,
+      phone: data.phone || null,
+      age: data.age || null
+    };
+    return res.json({ ok: true, message: "checked in", user, ticketCode: data.ticketCode || code });
   } catch (err) {
     console.error("POST /api/ticket/check error", err);
     return res.status(500).json({ error: String(err) });
