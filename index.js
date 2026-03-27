@@ -241,7 +241,7 @@ app.post("/api/ticket/send", async (req, res) => {
     }
 
     // Build ticket codes
-    const baseTicket = data.merchantOrderId || data.order || data.sessionId || `ticket-${doc.id}`;
+    const baseTicket = data.order || data.sessionId || `ticket-${doc.id}`;
     const packageId =
       (data.metaData && (data.metaData.packageId || data.metaData.package)) ||
       (data.response && data.response.metaData && (data.response.metaData.packageId || data.response.metaData.package)) ||
@@ -324,30 +324,14 @@ app.get("/api/ticket/check", async (req, res) => {
     const { code } = req.query || {};
     if (!code) return res.status(400).json({ error: "missing code" });
 
-    // lookup by merchantOrderId OR single ticketCode OR in ticketCodes array
+    // lookup by ticketCode OR in ticketCodes array
     let doc = null;
-    const snap = await db.collection("payments").where("merchantOrderId", "==", String(code)).limit(1).get();
+    const snap = await db.collection("payments").where("ticketCode", "==", String(code)).limit(1).get();
     if (!snap.empty) doc = snap.docs[0];
-    // If we found a doc by merchantOrderId but it represents a multi-ticket purchase,
-    // ensure the scanned code is actually one of the issued ticketCodes (or the stored ticketCode).
-    if (doc) {
-      const tmp = doc.data();
-      if (Array.isArray(tmp.ticketCodes) && tmp.ticketCodes.length > 0) {
-        const foundInCodes = tmp.ticketCodes.includes(String(code));
-        const matchesPrimary = (tmp.ticketCode && String(tmp.ticketCode) === String(code));
-        if (!foundInCodes && !matchesPrimary) {
-          // treat as not found here; clear doc so we continue other lookups
-          doc = null;
-        }
-      }
-    }
+    
     if (!doc) {
-      const snap2 = await db.collection("payments").where("ticketCode", "==", String(code)).limit(1).get();
+      const snap2 = await db.collection("payments").where("ticketCodes", "array-contains", String(code)).limit(1).get();
       if (!snap2.empty) doc = snap2.docs[0];
-    }
-    if (!doc) {
-      const snap3 = await db.collection("payments").where("ticketCodes", "array-contains", String(code)).limit(1).get();
-      if (!snap3.empty) doc = snap3.docs[0];
     }
 
     if (!doc) return res.status(404).json({ error: "ticket not found" });
@@ -374,27 +358,14 @@ app.post("/api/ticket/check", async (req, res) => {
     const { code } = req.body || {};
     if (!code) return res.status(400).json({ error: "missing code" });
 
-    // find by merchantOrderId, ticketCode, or in ticketCodes array
+    // find by ticketCode or in ticketCodes array
     let doc = null;
-    const snap = await db.collection("payments").where("merchantOrderId", "==", String(code)).limit(1).get();
+    const snap = await db.collection("payments").where("ticketCode", "==", String(code)).limit(1).get();
     if (!snap.empty) doc = snap.docs[0];
-    if (doc) {
-      const tmp = doc.data();
-      if (Array.isArray(tmp.ticketCodes) && tmp.ticketCodes.length > 0) {
-        const foundInCodes = tmp.ticketCodes.includes(String(code));
-        const matchesPrimary = (tmp.ticketCode && String(tmp.ticketCode) === String(code));
-        if (!foundInCodes && !matchesPrimary) {
-          doc = null;
-        }
-      }
-    }
+    
     if (!doc) {
-      const snap2 = await db.collection("payments").where("ticketCode", "==", String(code)).limit(1).get();
+      const snap2 = await db.collection("payments").where("ticketCodes", "array-contains", String(code)).limit(1).get();
       if (!snap2.empty) doc = snap2.docs[0];
-    }
-    if (!doc) {
-      const snap3 = await db.collection("payments").where("ticketCodes", "array-contains", String(code)).limit(1).get();
-      if (!snap3.empty) doc = snap3.docs[0];
     }
 
     if (!doc) return res.status(404).json({ error: "ticket not found" });
