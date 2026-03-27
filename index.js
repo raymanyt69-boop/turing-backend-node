@@ -195,9 +195,11 @@ app.post("/api/ticket/send", async (req, res) => {
 
     let doc = null;
     if (paymentId) {
-      const d = await db.collection("payments").doc(String(paymentId)).get();
+      // Query Firestore using the paymentId as the document ID (assuming paymentId is the doc ID)
+      const d = await db.collection("payments").doc(paymentId).get();
       if (d.exists) doc = d;
     } else if (email) {
+      // Query by email if paymentId is not provided
       const snap = await db
         .collection("payments")
         .where("email", "==", String(email))
@@ -252,8 +254,8 @@ app.post("/api/ticket/send", async (req, res) => {
       program_title: packageId || "",
       program_name: packageId || "",
       group_link: (data.metaData && data.metaData.group_link) || "",
-      packageId: packageId || "standard",
     };
+
     if (APPSCRIPT_TOKEN) appsPayload.token = APPSCRIPT_TOKEN;
 
     if (!APPSCRIPT_URL) {
