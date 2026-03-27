@@ -252,6 +252,7 @@ app.post("/api/ticket/send", async (req, res) => {
       program_title: packageId || "",
       program_name: packageId || "",
       group_link: (data.metaData && data.metaData.group_link) || "",
+      packageId: packageId || "standard",
     };
     if (APPSCRIPT_TOKEN) appsPayload.token = APPSCRIPT_TOKEN;
 
