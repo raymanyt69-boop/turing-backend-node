@@ -203,7 +203,7 @@ app.post("/api/ticket/send", async (req, res) => {
       // Query Firestore using the paymentId as the document ID
       const paymentDoc = await db.collection("payments").doc(paymentId).get();
 
-      console.log("current paymentDoc:", paymentDoc);
+      console.log("current paymentDoc:", paymentDoc.exists);
       
       if (paymentDoc.exists) {
         doc = paymentDoc;
